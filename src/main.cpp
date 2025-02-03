@@ -103,7 +103,7 @@ void setup()
     connectWiFi(ssid.c_str(), password.c_str());
     delay(100);
 
-    Serial.println("WiFi status:"+WiFi.status());
+    Serial.println("WiFi status:"+(char)WiFi.status()); // 不确定先留着看
 
     connectMQTTBroker();
 }
