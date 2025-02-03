@@ -19,27 +19,35 @@
 const char *AP_NAME = "pythagodzilla";
 const char *AP_PASS = "pythagodzilla";
 const char* htmlForm = R"rawliteral(
-  <html>
-    <head>
-      <title>Wi-Fi 配置</title>
-    </head>
-    <body>
-      <h2>请输入Wi-Fi配置</h2>
-      <form action="/save" method="POST">
-        <label for="ssid">SSID:</label><br>
-        <input type="text" id="ssid" name="ssid" required><br><br>
-        <label for="pass">密码:</label><br>
-        <input type="password" id="pass" name="pass" required><br><br>
-        <input type="submit" value="保存配置">
-      </form>
-    </body>
-  </html>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WiFi Setup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+      form { display: inline-block; }
+      input { margin: 5px; }
+    </style>
+  </head>
+  <body>
+    <h1>Connect to WiFi</h1>
+    <form action="/connect" method="POST">
+      <label for="ssid">SSID:</label>
+      <input type="text" id="ssid" name="ssid" required><br>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required><br>
+      <input type="submit" value="Connect">
+    </form>
+  </body>
+</html>
 )rawliteral";
 
 // WiFi初始化
-const char *ssid = "301-5G";
-const char *password = "zhou20110625"; // 密码
-
+const char *initSSID = "301-5G";
+const char *initPassword = "zhou20110625"; // 密码
+String ssid = "";
+String password = "";
 
 // MQTT初始设置
 const char *mqtt_broker = "pythagodzilla.pw";
@@ -47,6 +55,8 @@ const char *topic = "liuLake/SoilHumiditySensor";
 const char *mqtt_username = "pythagodzilla";
 const char *mqtt_password = "jtbx2mtblj";
 const int mqtt_port = 1883;
+
+bool isConfigured = false;
 
 /************************** 设置 ***********************************/
 
@@ -62,15 +72,18 @@ const int mqtt_port = 1883;
 #include <WebServer.h>
 #endif
 
-
+ESP8266WebServer server(80);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 // 声明函数
 void callback(char *topic, byte *payload, unsigned int length);
 int getHumidity();
-void connectWiFi();
+void connectWiFi(String ssidInput, String passwordInput);
 void connectMQTTBroker();
+void handleRoot();
+void handleConnect();
+void firstStart();
 
 // setup函数
 void setup()
@@ -81,7 +94,17 @@ void setup()
 
     Serial.begin(115200);
 
-    connectWiFi();
+    if (FIRST_START)
+    {
+        firstStart();
+        /* code */
+    }
+
+    connectWiFi(ssid.c_str(), password.c_str());
+    delay(100);
+
+    Serial.println("WiFi status:"+WiFi.status());
+
     connectMQTTBroker();
 }
 
@@ -99,7 +122,8 @@ void loop()
         client.publish(topic, strHumidity);
         pastTime = millis();
     }
-    client.loop();
+
+    server.handleClient(); // 处理HTTP请求
 }
 
 // 回调函数
@@ -109,7 +133,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.println(topic);
 
     Serial.print("Message:");
-    for (int i = 0; i < length; i++)
+    for (unsigned int i = 0; i < length; i++)
     {
         Serial.print((char)payload[i]);
     }
@@ -131,9 +155,10 @@ int getHumidity()
 }
 
 // 顾名思义，连接WiFi
-void connectWiFi()
+void connectWiFi(String ssidInput, String passwordInput)
 {
-    WiFi.begin(ssid, password);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssidInput, passwordInput);
 
     for (int connectCount = 0; connectCount < 15; connectCount++)
     {
@@ -142,15 +167,13 @@ void connectWiFi()
             delay(500);
             Serial.print(".");
         }
-        else
-        {
-            break;
-        }
-
-        if (connectCount == 14)
+        else if(connectCount == 14)
         {
             Serial.println("WiFi connection failed. Please check your settings and the signal.");
-            return;
+            break;
+        }else
+        {
+            break;
         }
     }
     Serial.println("Connected to the WiFi network");
@@ -186,9 +209,60 @@ void connectMQTTBroker()
 
 void firstStart()
 {
-    WiFi.mode(WIFI_STA);
-    ESP8266WebServer server(80);
+    WiFi.mode(WIFI_AP_STA);
 
     WiFi.softAP(AP_NAME, AP_PASS);
 
+    server.on("/", handleRoot);
+    server.on("/connect", HTTP_POST, handleConnect);
+    server.begin();
+
+    while (!isConfigured)
+    {
+        server.handleClient();
+    }
+
+    Serial.println("connectingSSID: "+ssid);
+    Serial.println("connectingPassword: "+password);
+
+    WiFi.begin(ssid.c_str(),password.c_str());
+
+    for (int connectCount = 0; connectCount < 15; connectCount++)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            delay(500);
+            Serial.print(".");
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        server.send(200, "text/html", "<h1>Connected to WiFi</h1><p>IP Address: " + WiFi.localIP().toString() + "</p>");
+    } else
+    {
+        server.send(200, "text/html", "<h1>Failed to connect to WiFi</h1><p>Please try again.</p>");
+    }
+}
+
+void handleRoot()
+{
+    server.send(200, "text/html", htmlForm);
+}
+
+void handleConnect() {
+    if (server.method() == HTTP_POST)
+    {
+        ssid = server.arg("ssid");
+        password = server.arg("password");
+
+        Serial.println("SSID: " + ssid);
+        Serial.println("Password: " + password);
+
+        isConfigured = true;
+    }
 }

@@ -1,6 +1,6 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <stdio.h>ESP32S3/src/SoilHumidity_ESP32.cpp
+#include <stdio.h>
 
 // 函数声明
 void callback(char *topic, byte *payload, unsigned int length);
