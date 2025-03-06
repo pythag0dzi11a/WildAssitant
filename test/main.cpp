@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <LittleFS.h>
+#include <cJSON.h>
 
 // 测试时使用的参数
 #define FIRST_START 1 // 未来用LITTLEFS存储，也许ArduinoJSON
@@ -18,7 +19,7 @@
 //AP模式设置
 const char *AP_NAME = "pythagodzilla";
 const char *AP_PASS = "pythagodzilla";
-const char* htmlForm = R"rawliteral(
+const char *htmlForm = R"rawliteral(
 <!DOCTYPE html>
 <html>
   <head>
@@ -44,7 +45,7 @@ const char* htmlForm = R"rawliteral(
 )rawliteral";
 
 // WiFi初始化
-const char *initSSID = "301-5G";
+const char *initSSID = "301";
 const char *initPassword = "zhou20110625"; // 密码
 String ssid = "";
 String password = "";

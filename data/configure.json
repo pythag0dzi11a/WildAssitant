@@ -1,7 +1,3 @@
 {
-"firstStart" : "true",
-"wifi"  : {
-    "ssid" : "SSID",
-    "password" : "PASSWORD"
-    }
+"firstStart" : "true"
 }
