@@ -153,7 +153,7 @@ short isFirstBoot(){
     file.close();
 
     //使用cJSON解析configureData内容，并匹配FIRST_BOOT的值。
-    cJSON *cJSONData = cJSON_Parse(configureData.cstr());
+    cJSON *cJSONData = cJSON_Parse(configureData.c_str());
     if (cJSONData == NULL){
         Serial.println("Configure File Parse FAILED! ");
         return;
@@ -316,7 +316,7 @@ void handleRoot()
 
     file.close();
 
-    server.send(200, "text/html", setWiFiHTMLData);
+    server.send(200, "text/html", setWiFiHTMLData.c_str());
 }
 
 void handleConnect() {
