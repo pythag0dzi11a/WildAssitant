@@ -3,6 +3,8 @@
 
 void setup(){
 
+    int isFirstStart;
+
     Serial.begin(115200);
     LittleFS.begin();
 
@@ -44,12 +46,18 @@ void loop(){
         ConfigureData += (char)configureFile.read();
     }
 
-    cJSON *root = cJSON_Parse(ConfigureData.c_str());
-    if (root == NULL)
+    cJSON *configuration = cJSON_Parse(ConfigureData.c_str());
+    if (configuration == NULL)
     {
         Serial.println("Failed to parse JSON");
         return;
     }
 
-    cJSON *FIRSTSTART = cJSON_GetObjectItem(root, "firstStart");
+    cJSON *FIRSTSTART = cJSON_GetObjectItem(configuration, "FIRST_BOOT");
+    if (cJSON_IsBool(FIRSTSTART))
+    {
+         = FIRSTSTART->valueint;
+        /* code */
+    }
+
 }
