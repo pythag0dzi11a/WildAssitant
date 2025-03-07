@@ -1,0 +1,1 @@
+这个仓库用于项目[WildAssitant](https://github.com/pythag0dzi11a/WildAssitant)。
