@@ -4,8 +4,7 @@
 #include <cJSON.h>
 
 // 测试时使用的参数
-//#define FIRSTBOOT 1 // 未来用LITTLEFS存储，也许ArduinoJSON
-/**已使用文件存储，相关内容请访问第 行**/
+#define FIRST_START 1 // 未来用LITTLEFS存储，也许ArduinoJSON
 
 // 引脚定义
 #define ENABLE_SENSOR 1
@@ -79,7 +78,6 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // 声明函数
-short isFirstBoot();
 void callback(char *topic, byte *payload, unsigned int length);
 int getHumidity();
 void connectWiFi(String ssidInput, String passwordInput);
@@ -97,9 +95,10 @@ void setup()
 
     Serial.begin(115200);
 
-    if (!isFirstBoot())
+    if (FIRST_START)
     {
-        firstBoot(); 
+        firstStart();
+        /* code */
     }
 
     connectWiFi(ssid.c_str(), password.c_str());
@@ -126,44 +125,6 @@ void loop()
     }
 
     server.handleClient(); // 处理HTTP请求
-}
-
-short isFirstBoot(){
-    short isFirstBoot = 0;
-    String configureData;
-    LittleFS.begin();
-
-    //读取configure.json内容，并保存到configureData中。
-    if(LittleFS.exists("\configure.json")){
-        File metaConfigureData = LittleFS.open("\configure.json","r");
-        
-        if ( metaConfigureData ){
-            while ( metaConfigureData.available() ){
-                configureData += metaConfigureData.read();
-            }
-        }else{
-            Serial.println("Configure File Open FAILED! ");
-        }
-    }else{
-        Serial.println("Configure File Doesn't EXISTS! ");
-    }
-
-    //使用cJSON解析configureData内容，并匹配FIRST_BOOT的值。
-    cJSON *cJSONData = cJSON_Parse(configureData.cstr());
-    if (cJSONData == NULL){
-        Serial.println("Configure File Parse FAILED! ");
-        return;
-    }
-
-    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"firstStart");
-    if (cJSON_IsBool(FIRSTBOOT)){
-        isFirstBoot = FIRSTBOOT -> valueint;
-    }else{
-        Serial.println("Configure File ERROR! Recreating configure File! ");
-        return;
-    }
-
-    return isFirstBoot;
 }
 
 // 回调函数
@@ -247,7 +208,7 @@ void connectMQTTBroker()
     client.subscribe(topic);
 }
 
-void firstBoot()
+void firstStart()
 {
     WiFi.mode(WIFI_AP_STA);
 
