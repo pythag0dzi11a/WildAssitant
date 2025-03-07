@@ -20,7 +20,9 @@
 //AP模式设置
 const char *AP_NAME = "pythagodzilla";
 const char *AP_PASS = "pythagodzilla";
-const char *htmlForm = R"rawliteral(
+
+//转存到setWifi.html中，这段代码过几个版本再删。
+/*const char *htmlForm = R"rawliteral(
 <!DOCTYPE html>
 <html>
   <head>
@@ -43,7 +45,7 @@ const char *htmlForm = R"rawliteral(
     </form>
   </body>
 </html>
-)rawliteral";
+)rawliteral";*/
 
 // WiFi初始化
 const char *initSSID = "301";
@@ -148,6 +150,8 @@ short isFirstBoot(){
         Serial.println("Configure File Doesn't EXISTS! ");
     }
 
+    file.close();
+
     //使用cJSON解析configureData内容，并匹配FIRST_BOOT的值。
     cJSON *cJSONData = cJSON_Parse(configureData.cstr());
     if (cJSONData == NULL){
@@ -248,7 +252,8 @@ void connectMQTTBroker()
 }
 
 void firstBoot()
-{
+{   
+    
     WiFi.mode(WIFI_AP_STA);
 
     WiFi.softAP(AP_NAME, AP_PASS);
@@ -291,7 +296,27 @@ void firstBoot()
 
 void handleRoot()
 {
-    server.send(200, "text/html", htmlForm);
+    String setWiFiHTMLData;
+    LittleFS.begin();
+
+    //读取configure.json内容，并保存到configureData中。
+    if(LittleFS.exists("\setWiFi.html")){
+        File metaSetWiFiHTMLData = LittleFS.open("\setWiFi.html","r");
+        
+        if ( metaSetWiFiHTMLData ){
+            while ( metaSetWiFiHTMLData.available() ){
+                setWiFiHTMLData += metaSetWiFiHTMLData.read();
+            }
+        }else{
+            Serial.println("File setWiFI.html Open FAILED! ");
+        }
+    }else{
+        Serial.println("File setWiFi.html Doesn't EXISTS! ");
+    }
+
+    file.close();
+
+    server.send(200, "text/html", setWiFiHTMLData);
 }
 
 void handleConnect() {
