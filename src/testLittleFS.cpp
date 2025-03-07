@@ -2,6 +2,7 @@
 #include <cJSON.h>
 
 void setup(){
+
     Serial.begin(115200);
     LittleFS.begin();
 
@@ -17,6 +18,9 @@ void setup(){
 }
 
 void loop(){
+
+    String ConfigureData;
+
     if (LittleFS.exists("/configure.json"))
     {
         Serial.println("File exists");
@@ -37,5 +41,15 @@ void loop(){
     while (configureFile.available())
     {
         Serial.write(configureFile.read());
+        ConfigureData += (char)configureFile.read();
     }
+
+    cJSON *root = cJSON_Parse(ConfigureData.c_str());
+    if (root == NULL)
+    {
+        Serial.println("Failed to parse JSON");
+        return;
+    }
+
+    cJSON *FIRSTSTART = cJSON_GetObjectItem(root, "firstStart");
 }
