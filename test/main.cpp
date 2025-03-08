@@ -54,7 +54,7 @@ String ssid = "";
 String password = "";
 
 // MQTT初始设置
-const char *mqtt_broker = "pythagodzilla.pw";
+const char *mqtt_broker = "192.168.31.124";
 const char *topic = "liuLake/SoilHumiditySensor";
 const char *mqtt_username = "pythagodzilla";
 const char *mqtt_password = "jtbx2mtblj";
@@ -88,7 +88,7 @@ void connectWiFi(String ssidInput, String passwordInput);
 void connectMQTTBroker();
 void handleRoot();
 void handleConnect();
-void firstStart();
+void firstBoot();
 
 // setup函数
 void setup()
@@ -101,7 +101,7 @@ void setup()
 
     if (!isFirstBoot())
     {
-        firstBoot(); 
+        firstBoot();
     }
 
     connectWiFi(ssid.c_str(), password.c_str());
@@ -136,37 +136,42 @@ short isFirstBoot(){
     LittleFS.begin();
 
     //读取configure.json内容，并保存到configureData中。
-    if(LittleFS.exists("\configure.json")){
-        File metaConfigureData = LittleFS.open("\configure.json","r");
-        
+    if(LittleFS.exists("/configure.json")){
+        File metaConfigureData = LittleFS.open("/configure.json","r");
+
         if ( metaConfigureData ){
             while ( metaConfigureData.available() ){
                 configureData += metaConfigureData.read();
             }
+
+            metaConfigureData.close();
         }else{
             Serial.println("Configure File Open FAILED! ");
+
+            metaConfigureData.close();
         }
     }else{
         Serial.println("Configure File Doesn't EXISTS! ");
-    }
 
-    file.close();
+    }
+//
 
     //使用cJSON解析configureData内容，并匹配FIRST_BOOT的值。
     cJSON *cJSONData = cJSON_Parse(configureData.c_str());
     if (cJSONData == NULL){
         Serial.println("Configure File Parse FAILED! ");
-        return;
+        return 3;
     }
 
-    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"firstStart");
+    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"FIRST_BOOT");
     if (cJSON_IsBool(FIRSTBOOT)){
         isFirstBoot = FIRSTBOOT -> valueint;
     }else{
         Serial.println("Configure File ERROR! Recreating configure File! ");
-        return;
+        return 3;
     }
 
+    cJSON_Delete(cJSONData);
     return isFirstBoot;
 }
 
@@ -188,7 +193,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 int getHumidity()
 {
     static int humidity = 0;
-    digitalWrite(ENABLE_SENSOR, HIGH);\
+    digitalWrite(ENABLE_SENSOR, HIGH);
 
     delay(100); // 用delay是因为方便，具体影响再看
 
@@ -252,8 +257,8 @@ void connectMQTTBroker()
 }
 
 void firstBoot()
-{   
-    
+{
+
     WiFi.mode(WIFI_AP_STA);
 
     WiFi.softAP(AP_NAME, AP_PASS);
@@ -300,21 +305,23 @@ void handleRoot()
     LittleFS.begin();
 
     //读取configure.json内容，并保存到configureData中。
-    if(LittleFS.exists("\setWiFi.html")){
-        File metaSetWiFiHTMLData = LittleFS.open("\setWiFi.html","r");
-        
+    if(LittleFS.exists("/setWiFi.html")){
+        File metaSetWiFiHTMLData = LittleFS.open("/setWiFi.html","r");
+
         if ( metaSetWiFiHTMLData ){
             while ( metaSetWiFiHTMLData.available() ){
                 setWiFiHTMLData += metaSetWiFiHTMLData.read();
             }
+
+            metaSetWiFiHTMLData.close();
         }else{
             Serial.println("File setWiFI.html Open FAILED! ");
+
+            metaSetWiFiHTMLData.close();
         }
     }else{
         Serial.println("File setWiFi.html Doesn't EXISTS! ");
     }
-
-    file.close();
 
     server.send(200, "text/html", setWiFiHTMLData.c_str());
 }

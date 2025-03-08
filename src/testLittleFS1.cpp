@@ -1,9 +1,9 @@
 #include <LittleFS.h>
 #include <cJSON.h>
 
-void setup(){
+int code;
 
-    int isFirstStart;
+void setup(){
 
     Serial.begin(115200);
     LittleFS.begin();
@@ -42,22 +42,24 @@ void loop(){
 
     while (configureFile.available())
     {
-        Serial.write(configureFile.read());
         ConfigureData += (char)configureFile.read();
     }
 
-    cJSON *configuration = cJSON_Parse(ConfigureData.c_str());
-    if (configuration == NULL)
-    {
-        Serial.println("Failed to parse JSON");
-        return;
+    Serial.println(ConfigureData);
+
+    cJSON *cJSONData = cJSON_Parse(ConfigureData.c_str());
+    if (cJSONData == NULL){
+        Serial.println("Configure File Parse FAILED! ");
+        Serial.println("3");
     }
 
-    cJSON *FIRSTSTART = cJSON_GetObjectItem(configuration, "FIRST_BOOT");
-    if (cJSON_IsBool(FIRSTSTART))
-    {
-         = FIRSTSTART->valueint;
-        /* code */
+    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"FIRSTBOOT");
+    if (cJSON_IsBool(FIRSTBOOT)){
+        code = FIRSTBOOT -> valueint;
+    }else{
+        Serial.println("Configure File ERROR! Recreating configure File! ");
+        Serial.println("3");
     }
 
+    Serial.println(String(code));
 }
