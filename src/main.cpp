@@ -99,7 +99,7 @@ void setup()
 
     Serial.begin(115200);
 
-    if (!isFirstBoot())
+    if (isFirstBoot())
     {
         firstBoot();
     }
@@ -130,8 +130,7 @@ void loop()
     server.handleClient(); // 处理HTTP请求
 }
 
-short isFirstBoot(){
-    short isFirstBoot = 0;
+short isFirstBoot(){    // 这个函数用来判断是否是第一次启动，并且返回0，1，或者3来判断状态。
     String configureData;
     LittleFS.begin();
 
@@ -139,7 +138,17 @@ short isFirstBoot(){
     if(LittleFS.exists("/configure.json")){
         File metaConfigureData = LittleFS.open("/configure.json","r");
 
-        if ( metaConfigureData ){
+        if (!metaConfigureData){
+            Serial.println("Failed To Open Configure File! ");
+            return 3;
+        }else{
+            while (metaConfigureData.available()){
+                configureData += (char)metaConfigureData.read();
+            }
+
+            Serial.println(configureData);
+        }
+        /*if ( metaConfigureData ){
             while ( metaConfigureData.available() ){
                 configureData += metaConfigureData.read();
             }
@@ -149,7 +158,7 @@ short isFirstBoot(){
             Serial.println("Configure File Open FAILED! ");
 
             metaConfigureData.close();
-        }
+        }*/
     }else{
         Serial.println("Configure File Doesn't EXISTS! ");
 
@@ -163,16 +172,15 @@ short isFirstBoot(){
         return 3;
     }
 
-    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"FIRST_BOOT");
+    cJSON *FIRSTBOOT = cJSON_GetObjectItem(cJSONData,"FIRSTBOOT");
     if (cJSON_IsBool(FIRSTBOOT)){
-        isFirstBoot = FIRSTBOOT -> valueint;
+        return FIRSTBOOT -> valueint;
     }else{
         Serial.println("Configure File ERROR! Recreating configure File! ");
         return 3;
     }
 
     cJSON_Delete(cJSONData);
-    return isFirstBoot;
 }
 
 // 回调函数
@@ -310,7 +318,7 @@ void handleRoot()
 
         if ( metaSetWiFiHTMLData ){
             while ( metaSetWiFiHTMLData.available() ){
-                setWiFiHTMLData += metaSetWiFiHTMLData.read();
+                setWiFiHTMLData += (char)metaSetWiFiHTMLData.read();
             }
 
             metaSetWiFiHTMLData.close();
@@ -319,11 +327,14 @@ void handleRoot()
 
             metaSetWiFiHTMLData.close();
         }
+
+        metaSetWiFiHTMLData.close();
     }else{
         Serial.println("File setWiFi.html Doesn't EXISTS! ");
     }
 
     server.send(200, "text/html", setWiFiHTMLData.c_str());
+
 }
 
 void handleConnect() {
